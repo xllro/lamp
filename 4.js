@@ -2,12 +2,17 @@
     function startPlugin() {
         let buttonAdded = false;
 
+        if (!window.Lampa || !Lampa.Events) {
+            console.warn('Lampa ще не готова, чекаємо...');
+            document.addEventListener("lampa-start", startPlugin);
+            return;
+        }
+
         Lampa.Events.on('movie', (event) => {
             if (buttonAdded) return;
 
             const data = event.object;
-
-            const btn = $('<div class="full-start__button selector focus" style="margin: 10px 0;">Онлайн (UAKino)</div>');
+            const btn = $('<div class="full-start__button selector">Онлайн (UAKino)</div>');
 
             btn.on('hover:enter', () => {
                 Lampa.Noty.show('Завантаження з uakino.me...');
@@ -21,8 +26,7 @@
                 })
                 .then(res => res.text())
                 .then(html => {
-                    const parser = new DOMParser();
-                    const doc = parser.parseFromString(html, 'text/html');
+                    const doc = new DOMParser().parseFromString(html, 'text/html');
                     const link = doc.querySelector('.shortstory a.shortlink')?.href;
 
                     if (!link) return Lampa.Noty.show('Фільм не знайдено на UAKino');
@@ -30,9 +34,9 @@
                     return fetch(link)
                         .then(res => res.text())
                         .then(page => {
-                            const iframeMatch = page.match(/<iframe[^>]+src="([^"]+)"/);
-                            if (iframeMatch && iframeMatch[1]) {
-                                Lampa.Player.play(iframeMatch[1]);
+                            const match = page.match(/<iframe[^>]+src="([^"]+)"/);
+                            if (match && match[1]) {
+                                Lampa.Player.play(match[1]);
                             } else {
                                 Lampa.Noty.show('Не вдалося знайти відео');
                             }
@@ -48,6 +52,9 @@
         });
     }
 
-    if (window.Lampa) startPlugin();
-    else document.addEventListener("lampa-start", startPlugin);
+    if (window.Lampa && Lampa.Events) {
+        startPlugin();
+    } else {
+        document.addEventListener("lampa-start", startPlugin);
+    }
 })();
