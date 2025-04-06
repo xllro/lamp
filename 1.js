@@ -13,6 +13,7 @@
         const network = Lampa.Network;
         const source = {};
 
+        // Пошук фільмів на UaKino
         source.search = function (query, year, type, callback) {
             const url = `https://uakino.me/index.php?do=search`;
 
@@ -51,24 +52,37 @@
             });
         };
 
-        source.play = function (element, callback) {
-            network.silent(element.url, (html) => {
-                const iframeMatch = html.match(/<iframe[^>]+src="([^"]+)"[^>]*>/);
-                if (iframeMatch && iframeMatch[1]) {
-                    const video_url = iframeMatch[1];
+        // Додавання кнопки "Онлайн" для кожного фільму
+        source.get = function (id, callback) {
+            const url = `https://uakino.me${id}`;
+            network.silent(url, {
+                method: 'GET'
+            }, (html) => {
+                const doc = new DOMParser().parseFromString(html, 'text/html');
+                const videoUrl = doc.querySelector('.b-post__video iframe')?.src;
 
-                    callback([{
-                        title: 'UAKino',
-                        file: video_url,
+                if (videoUrl) {
+                    // Додаємо кнопку "Онлайн"
+                    const onlineButton = {
+                        title: 'Переглянути онлайн',
+                        file: videoUrl,  // Лінк на відео
                         quality: 'HD',
-                        stream: true
-                    }]);
+                        stream: true,
+                        button: {
+                            text: "Переглянути онлайн",
+                            action: () => {
+                                Lampa.Player.play(videoUrl);  // Відтворення відео
+                            }
+                        },
+                    };
+                    callback([onlineButton]);
                 } else {
                     callback([]);
                 }
             });
         };
 
+        // Додаємо джерело до Lampa
         Lampa.Platform.addSource(source);
     }
 
